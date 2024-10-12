@@ -406,7 +406,7 @@ async def get_all_lessons():
 
 # get all courses for set level, check if user has finished any of them, if yes then add
 @app.get("/lessons/level/{level}", response_model=List[LessonResponse])
-async def get_lessons_by_level(level: int, token: str):
+async def get_lessons_by_level(level: int, token: str = Depends(oauth2_scheme)):
     """
     Get all lessons for a specific level and check if the user has finished any of them.
 
