@@ -6,6 +6,7 @@ date: 12.10.2024
 
 # from dotenv import load_dotenv
 import os
+import random
 from typing import Optional, List
 import bson
 from icecream import ic
@@ -20,13 +21,13 @@ from jwt.exceptions import InvalidTokenError
 from datetime import timedelta
 from fastapi import Request
 from starlette.middleware.cors import CORSMiddleware
-
+from groq import Groq
 # module imports
 from models import User, UserCreate, UserInDB, Token, TokenData, LoginRequest, RegisterRequest, UserResponse, \
-    RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz, QuizUploadRequest, FinishQuizRequest, LeaderBoard
+    RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz, QuizUploadRequest, FinishQuizRequest, LeaderBoard, \
+    InterviewResponse, InterviewRequest
 from security import get_password_hash, verify_password, oauth2_scheme, SECRET_KEY, ALGORITHM, \
     ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, REFRESH_TOKEN_EXPIRE_MINUTES, create_refresh_token
-
 load_dotenv()
 
 # DB setup
@@ -48,6 +49,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# LLAMA SETUP
+
+client = Groq(api_key=os.getenv("SECRET_GROQ_KEY"))
 
 async def validate_user_create(request: Request):
     """
@@ -311,14 +315,15 @@ def extract_user_id_from_token(token: str) -> str:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+from fastapi import Header, Depends
 
 @app.post("/get_me", response_model=UserResponse)
-async def extract_user_info(token_request: TokenRequest = Body(...)):
+async def extract_user_info(token: str = Depends(oauth2_scheme)):
     """
         Get current user information based on jwt token
 
         Args:
-            token_request (TokenRequest):  jwt token in json body
+            token (str): JWT token from the Authorization header
 
         Returns:
             user (UserResponse): information about user
@@ -326,7 +331,6 @@ async def extract_user_info(token_request: TokenRequest = Body(...)):
         Raises:
             HTTP Exception 404 if user id is not existent.
      """
-    token = token_request.access_token
     user_id = extract_user_id_from_token(token)
     user = get_user_by_id(collection_users, user_id)
     if not user:
@@ -544,6 +548,7 @@ async def finish_course_submit_quiz(lesson_id: str, request: FinishQuizRequest, 
         )
         raise HTTPException(status_code=400, detail="Quiz not passed")
 
+### LEADERBOARDS ROUTEING
 
 @app.get("/leaderboard", response_model=List[LeaderBoard])
 async def get_leaderboard():
@@ -559,3 +564,57 @@ async def get_leaderboard():
     ]
     leaderboard.sort(key=lambda x: x.score, reverse=True)
     return leaderboard
+
+
+### LLM ADVANCED TECHNOLOGY ROUTES
+
+### W CIUL PYTAN
+interview_questions = [
+    "What is your biggest weakness?",
+    "Can you describe a challenging technical problem you solved?",
+    "What is the difference between a stack and a queue?",
+    "How do you handle tight deadlines on complex projects?",
+    "Explain the concept of object-oriented programming.",
+    "What are the main differences between REST and GraphQL?",
+    "Describe a time when you had to collaborate with a difficult team member.",
+    "What are some design patterns you have used in your projects?",
+    "How do you prioritize tasks when working on multiple projects?",
+    "Explain the concept of a deadlock in operating systems.",
+    "What is the difference between SQL and NoSQL databases?",
+    "How do you keep your technical skills up to date?",
+    "Can you explain how version control works and why it's important?",
+    "What steps do you take to secure a web application?",
+    "Describe the process of debugging a codebase.",
+    "How would you optimize the performance of a slow database query?",
+    "What is the most difficult bug you’ve encountered, and how did you resolve it?",
+    "Explain the differences between multi-threading and asynchronous programming.",
+    "How do you ensure the quality of your code?",
+    "What are some important factors when choosing a cloud provider?"
+]
+@app.get('/get_interview_question')
+async def get_interview_question():
+    question = random.choice(interview_questions)
+    return {"question": question}
+
+
+@app.post("/get_interview_response", response_model=InterviewResponse)
+async def get_interview_response(interview_request: InterviewRequest):
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Act like a professional interviewer and respond to the question. Tell me if the response was "
+                               f"adequate and what should I change in the future? Respond with just words, make your response not "
+                               f"longer than 500 characters please. Question is: {interview_request.question} "
+                               f"Response is: {interview_request.response}",
+                }
+            ],
+            model="llama3-8b-8192",
+        )
+        feedback = chat_completion.choices[0].message.content
+        return InterviewResponse(feedback=feedback)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+

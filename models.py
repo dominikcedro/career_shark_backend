@@ -177,3 +177,15 @@ class LeaderBoard(BaseModel):
     nickname: str
     score: int
     courses: List[str]
+
+### INTERVIEW MODELS
+
+class InterviewRequest(BaseModel):
+    question: str
+    response: str
+
+class InterviewResponse(BaseModel):
+    feedback: str
+
+#questions for interviews mass upload
+
