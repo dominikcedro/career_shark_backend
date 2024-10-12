@@ -25,7 +25,7 @@ from groq import Groq
 # module imports
 from models import User, UserCreate, UserInDB, Token, TokenData, LoginRequest, RegisterRequest, UserResponse, \
     RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz, QuizUploadRequest, FinishQuizRequest, LeaderBoard, \
-    InterviewResponse, InterviewRequest, Question, Choice
+    InterviewResponse, InterviewRequest, Question, Choice, LessonResponseWithoutQuiz
 from security import get_password_hash, verify_password, oauth2_scheme, SECRET_KEY, ALGORITHM, \
     ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, REFRESH_TOKEN_EXPIRE_MINUTES, create_refresh_token
 load_dotenv()
@@ -405,20 +405,8 @@ async def get_all_lessons():
 # get course ID
 
 # get all courses for set level, check if user has finished any of them, if yes then add
-@app.get("/lessons/level/{level}", response_model=List[LessonResponse])
+@app.get("/lessons/level/{level}", response_model=List[LessonResponseWithoutQuiz])
 async def get_lessons_by_level(level: int, token: str = Depends(oauth2_scheme)):
-    """
-    Get all lessons for a specific level and check if the user has finished any of them.
-
-    Args:
-        level (int): The level of the lessons to retrieve.
-        token (str): The JWT token of the user.
-
-    Returns:
-        List[LessonResponse]: A list of lessons for the specified level with finished status.
-    """
-    # payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    # user_id: str = payload.get("user_id")
     user_id = extract_user_id_from_token(token)
     user = get_user_by_id(collection_users, user_id)
     if not user:
@@ -430,7 +418,7 @@ async def get_lessons_by_level(level: int, token: str = Depends(oauth2_scheme)):
         lesson["_id"] = str(lesson["_id"])
         lesson["finished"] = 1 if lesson["_id"] in finished_courses else 0
 
-    return [LessonResponse(**lesson) for lesson in lessons]
+    return [LessonResponseWithoutQuiz(**lesson) for lesson in lessons]
 
 @app.post("/users/finish_course")
 async def finish_course(course_id: str, token: str):

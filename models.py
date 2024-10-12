@@ -166,6 +166,22 @@ class LessonResponse(BaseModel):
             ObjectId: str
         }
 
+from pydantic import BaseModel, Field
+from typing import Optional, List
+
+class LessonResponseWithoutQuiz(BaseModel):
+    id: Optional[str] = Field(None, alias="_id")
+    name: str
+    level: int
+    link_to_resources: str
+    value_points: int
+    finished: int = 0  # zero for not finished, 1 for finished for current user
+
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {
+            ObjectId: str
+        }
 
 class FinishQuizRequest(BaseModel):
     answers: List[str]
