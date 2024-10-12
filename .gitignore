@@ -1,0 +1,4 @@
+.venv
+.env
+test_main.http
+.idea
