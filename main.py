@@ -618,7 +618,8 @@ async def get_interview_response(interview_request: InterviewRequest):
         raise HTTPException(status_code=500, detail=str(e))
 from fastapi import FastAPI, HTTPException
 from models import Quiz, Question, Choice
-welcome_quiz = Quiz(
+
+welcome_quiz = Quiz( # forgive me for my hardcoded sins
     name_of_test="Career Path Quiz",
     to_pass=0,
     num_of_questions=10,
