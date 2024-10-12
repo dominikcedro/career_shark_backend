@@ -23,7 +23,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 # module imports
 from models import User, UserCreate, UserInDB, Token, TokenData, LoginRequest, RegisterRequest, UserResponse, \
-    RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz
+    RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz, QuizUploadRequest
 from security import get_password_hash, verify_password, oauth2_scheme, SECRET_KEY, ALGORITHM, \
     ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, REFRESH_TOKEN_EXPIRE_MINUTES, create_refresh_token
 
@@ -471,7 +471,7 @@ async def get_quiz(lesson_id: str):
     return Quiz(**lesson["quiz"])
 
 @app.post("/lessons/{lesson_id}/quiz", response_model=LessonResponse)
-async def upload_quiz(lesson_id: str, quiz: Quiz):
+async def upload_quiz(lesson_id: str, quiz: QuizUploadRequest):
     """
     Upload a quiz for a specific lesson.
 

@@ -4,7 +4,7 @@ team: Znamy sie tylko z widzenia!
 date: 12.10.2024
 """
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, root_validator
 from bson import ObjectId
 from pydantic import BaseModel, EmailStr
 from pydantic import BaseModel
@@ -99,13 +99,31 @@ class TokenRequest(BaseModel):
 class Choice(BaseModel):
     option: str
     text: str
+
 class Question(BaseModel):
     question_text: str
     choices: List[Choice]
     correct_option: str # a / b / c lowercase
+
 class Quiz(BaseModel):
     name_of_test: str
+    to_pass: int
+    num_of_questions: int
     questions: List[Question]
+
+class QuizUploadRequest(BaseModel):
+    name_of_test: str
+    to_pass: int = 50
+    num_of_questions: int = 0
+    questions: List[Question]
+
+    @root_validator(pre=True)
+    def set_num_of_questions(cls, values):
+        questions = values.get('questions', [])
+        values['num_of_questions'] = len(questions)
+        if 'to_pass' not in values:
+            values['to_pass'] = 50
+        return values
 
 ### LESSONS
 
@@ -149,3 +167,5 @@ class LessonResponse(BaseModel):
         }
 
 
+class FinishQuizRequest(BaseModel):
+    answers: List[str]
