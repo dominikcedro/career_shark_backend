@@ -169,3 +169,11 @@ class LessonResponse(BaseModel):
 
 class FinishQuizRequest(BaseModel):
     answers: List[str]
+
+### classes for leaderboards
+
+class LeaderBoard(BaseModel):
+    user_id: str
+    nickname: str
+    score: int
+    courses: List[str]

@@ -23,7 +23,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 # module imports
 from models import User, UserCreate, UserInDB, Token, TokenData, LoginRequest, RegisterRequest, UserResponse, \
-    RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz, QuizUploadRequest, FinishQuizRequest
+    RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz, QuizUploadRequest, FinishQuizRequest, LeaderBoard
 from security import get_password_hash, verify_password, oauth2_scheme, SECRET_KEY, ALGORITHM, \
     ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, REFRESH_TOKEN_EXPIRE_MINUTES, create_refresh_token
 
@@ -543,3 +543,19 @@ async def finish_course_submit_quiz(lesson_id: str, request: FinishQuizRequest, 
             {"$set": {"lives": user.lives - 1}}
         )
         raise HTTPException(status_code=400, detail="Quiz not passed")
+
+
+@app.get("/leaderboard", response_model=List[LeaderBoard])
+async def get_leaderboard():
+    users = collection_users.find({}, {"_id": 1, "nickname": 1, "points": 1, "finished_courses": 1})
+    leaderboard = [
+        LeaderBoard(
+            user_id=str(user["_id"]),
+            nickname=user["nickname"],
+            score=user["points"],
+            courses=user["finished_courses"]
+        )
+        for user in users
+    ]
+    leaderboard.sort(key=lambda x: x.score, reverse=True)
+    return leaderboard
