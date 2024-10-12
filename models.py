@@ -1,8 +1,7 @@
 """
-original author: Dominik Cedro
-created: 2024-09-28
-license: none
-description: Models for user objects in DB, they also perform DTO role
+author: Dominik Cedro
+team: Znamy sie tylko z widzenia!
+date: 12.10.2024
 """
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field
@@ -66,6 +65,7 @@ class UserResponse(BaseModel):
     role: str
     lives: int
     points: int
+    finished_courses: List[str]
 
     class Config:
         arbitrary_types_allowed = True
@@ -93,3 +93,44 @@ class RefreshRequest(BaseModel):
 
 class TokenRequest(BaseModel):
     access_token: str
+
+### LESSONS
+
+
+class Lesson(BaseModel):
+    id: Optional[str] = Field(None, alias="_id")
+    name: str
+    level: int
+    link_to_resources: str
+    test: str  # Accepting a string for now
+    value_points: int
+
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {
+            ObjectId: str
+        }
+
+
+class LessonCreate(BaseModel):
+    name: str
+    level: int
+    link_to_resources: str
+    test: str  # Accepting a string for now
+    value_points: int
+
+
+class LessonResponse(BaseModel):
+    id: Optional[str] = Field(None, alias="_id")
+    name: str
+    level: int
+    link_to_resources: str
+    test: str  # Accepting a string for now
+    value_points: int
+    finished: int = 0 # zero for not finished, 1 for finished for current user
+
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {
+            ObjectId: str
+        }

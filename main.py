@@ -3,14 +3,6 @@ author: Dominik Cedro
 team: Znamy sie tylko z widzenia!
 date: 12.10.2024
 """
-from fastapi import FastAPI
-
-"""
-original author: Dominik Cedro
-created: 2024-09-28
-license: none
-description: Main script for users endpoints
-"""
 
 # from dotenv import load_dotenv
 import os
@@ -31,7 +23,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 # module imports
 from models import User, UserCreate, UserInDB, Token, TokenData, LoginRequest, RegisterRequest, UserResponse, \
-    RefreshRequest, TokenRequest
+    RefreshRequest, TokenRequest, LessonResponse, LessonCreate
 from security import get_password_hash, verify_password, oauth2_scheme, SECRET_KEY, ALGORITHM, \
     ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, REFRESH_TOKEN_EXPIRE_MINUTES, create_refresh_token
 
@@ -40,9 +32,10 @@ load_dotenv()
 # DB setup
 uri = os.getenv("MONGO_URI")
 client = MongoClient(uri)
-db = client.hackyeahdb
+db = client.carrershark
 collection_users = db["users"]
 collection_counters = db["counters"]
+collection_lessons = db["lessons"]
 
 # API setup
 app = FastAPI()
@@ -372,3 +365,89 @@ async def welcome():
         identification endpoint
     """
     return {"CarrerShark": "ONLINE"}
+
+### lessons endpoints
+@app.post("/lessons", response_model=LessonResponse)
+async def add_lesson(lesson: LessonCreate): # TODO later make it accept access token so it validates if users has role=EDUCATOR
+    """
+    Add a new lesson to the database.
+
+    Args:
+        lesson (LessonCreate): The lesson data to be added.
+
+    Returns:
+        LessonResponse: The added lesson data.
+    """
+    lesson_dict = lesson.dict()
+    result = collection_lessons.insert_one(lesson_dict)
+    if result.inserted_id:
+        lesson_dict["_id"] = str(result.inserted_id)
+        return LessonResponse(**lesson_dict)
+    else:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Lesson creation failed")
+# get all courses possible (just for fun)
+@app.get("/lessons", response_model=List[LessonResponse])
+async def get_all_lessons():
+    """
+    Get all lessons from the database.
+
+    Returns:
+        List[LessonResponse]: A list of all lessons.
+    """
+    lessons = list(collection_lessons.find({}))
+    for lesson in lessons:
+        lesson["_id"] = str(lesson["_id"])
+    return [LessonResponse(**lesson) for lesson in lessons]
+# get course ID
+
+# get all courses for set level, check if user has finished any of them, if yes then add
+@app.get("/lessons/level/{level}", response_model=List[LessonResponse])
+async def get_lessons_by_level(level: int, token: str):
+    """
+    Get all lessons for a specific level and check if the user has finished any of them.
+
+    Args:
+        level (int): The level of the lessons to retrieve.
+        token (str): The JWT token of the user.
+
+    Returns:
+        List[LessonResponse]: A list of lessons for the specified level with finished status.
+    """
+    # payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    # user_id: str = payload.get("user_id")
+    user_id = extract_user_id_from_token(token)
+    user = get_user_by_id(collection_users, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    finished_courses = user.finished_courses
+    lessons = list(collection_lessons.find({"level": level}))
+    for lesson in lessons:
+        lesson["_id"] = str(lesson["_id"])
+        lesson["finished"] = 1 if lesson["_id"] in finished_courses else 0
+
+    return [LessonResponse(**lesson) for lesson in lessons]
+
+@app.post("/users/finish_course")
+async def finish_course(course_id: str, token: str):
+    """
+    Add a course ID to the current user's finished courses.
+
+    Args:
+        course_id (str): The ID of the course to add.
+        token (str): The JWT token of the user.
+
+    Returns:
+        dict: A message indicating the course was added to finished courses.
+    """
+    user_id = extract_user_id_from_token(token)
+    user = get_user_by_id(collection_users, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if course_id not in user.finished_courses:
+        user.finished_courses.append(course_id)
+        collection_users.update_one({"_id": ObjectId(user_id)}, {"$set": {"finished_courses": user.finished_courses}})
+        return {"message": "Course added to finished courses"}
+    else:
+        return {"message": "Course already in finished courses"}
