@@ -4,7 +4,7 @@ created: 2024-09-28
 license: none
 description: Models for user objects in DB, they also perform DTO role
 """
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field
 from bson import ObjectId
 from pydantic import BaseModel, EmailStr
@@ -39,9 +39,17 @@ class UserCreate(BaseModel):
     hashed_password: str
 
 
-class UserInDB(User):
+
+class UserInDB(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
+    email: EmailStr
     hashed_password: str
+    DoB: str
+    nickname: str
+    role: str
+    lives: int = 0  # Default value
+    points: int = 0  # Default value
+    finished_courses: List[str] = []  # Default value
 
     class Config:
         arbitrary_types_allowed = True

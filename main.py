@@ -86,6 +86,9 @@ def add_user_to_db(collection, user: UserCreate):
         HTTP Exception 500 if registration failed
     """
     user_dict = user.dict()
+    user_dict["lives"] = 0  # Default value
+    user_dict["points"] = 0  # Default value
+    user_dict["finished_courses"] = []  # Default value
     result = collection.insert_one(user_dict)
     if result.inserted_id:
         user_dict["_id"] = str(result.inserted_id)
@@ -202,11 +205,6 @@ async def register_new_user(register_request: RegisterRequest):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
-        )
-    if get_user(collection_users, register_request.pesel):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Pesel already registered",
         )
     hashed_password = get_password_hash(register_request.password)
     new_user = UserCreate(
