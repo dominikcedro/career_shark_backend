@@ -25,7 +25,7 @@ from groq import Groq
 # module imports
 from models import User, UserCreate, UserInDB, Token, TokenData, LoginRequest, RegisterRequest, UserResponse, \
     RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz, QuizUploadRequest, FinishQuizRequest, LeaderBoard, \
-    InterviewResponse, InterviewRequest
+    InterviewResponse, InterviewRequest, Question, Choice
 from security import get_password_hash, verify_password, oauth2_scheme, SECRET_KEY, ALGORITHM, \
     ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, REFRESH_TOKEN_EXPIRE_MINUTES, create_refresh_token
 load_dotenv()
@@ -616,5 +616,119 @@ async def get_interview_response(interview_request: InterviewRequest):
         return InterviewResponse(feedback=feedback)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+from fastapi import FastAPI, HTTPException
+from models import Quiz, Question, Choice
+welcome_quiz = Quiz(
+    name_of_test="Career Path Quiz",
+    to_pass=0,
+    num_of_questions=10,
+    questions=[
+        Question(
+            question_text="Do you enjoy working with databases?",
+            choices=[
+                Choice(option="a", text="Yes, I love it"),
+                Choice(option="b", text="Not really"),
+                Choice(option="c", text="I can manage both frontend and backend tasks")
+            ],
+            correct_option="a"
+        ),
+        Question(
+            question_text="Do you prefer designing user interfaces?",
+            choices=[
+                Choice(option="a", text="No, I prefer backend logic"),
+                Choice(option="b", text="Yes, I enjoy it"),
+                Choice(option="c", text="I like both")
+            ],
+            correct_option="b"
+        ),
+        Question(
+            question_text="Do you enjoy optimizing server performance?",
+            choices=[
+                Choice(option="a", text="Yes, it's my favorite"),
+                Choice(option="b", text="Not really"),
+                Choice(option="c", text="I can do both")
+            ],
+            correct_option="a"
+        ),
+        Question(
+            question_text="Do you like working with APIs?",
+            choices=[
+                Choice(option="a", text="Yes, I love it"),
+                Choice(option="b", text="Not really"),
+                Choice(option="c", text="I can manage both frontend and backend tasks")
+            ],
+            correct_option="a"
+        ),
+        Question(
+            question_text="Do you enjoy creating responsive web designs?",
+            choices=[
+                Choice(option="a", text="No, I prefer backend logic"),
+                Choice(option="b", text="Yes, I enjoy it"),
+                Choice(option="c", text="I like both")
+            ],
+            correct_option="b"
+        ),
+        Question(
+            question_text="Do you prefer working on server-side logic?",
+            choices=[
+                Choice(option="a", text="Yes, it's my favorite"),
+                Choice(option="b", text="Not really"),
+                Choice(option="c", text="I can do both")
+            ],
+            correct_option="a"
+        ),
+        Question(
+            question_text="Do you enjoy working with CSS and HTML?",
+            choices=[
+                Choice(option="a", text="No, I prefer backend logic"),
+                Choice(option="b", text="Yes, I enjoy it"),
+                Choice(option="c", text="I like both")
+            ],
+            correct_option="b"
+        ),
+        Question(
+            question_text="Do you like managing server infrastructure?",
+            choices=[
+                Choice(option="a", text="Yes, I love it"),
+                Choice(option="b", text="Not really"),
+                Choice(option="c", text="I can manage both frontend and backend tasks")
+            ],
+            correct_option="a"
+        ),
+        Question(
+            question_text="Do you enjoy creating interactive web elements?",
+            choices=[
+                Choice(option="a", text="No, I prefer backend logic"),
+                Choice(option="b", text="Yes, I enjoy it"),
+                Choice(option="c", text="I like both")
+            ],
+            correct_option="b"
+        ),
+        Question(
+            question_text="Do you prefer working with backend frameworks?",
+            choices=[
+                Choice(option="a", text="Yes, it's my favorite"),
+                Choice(option="b", text="Not really"),
+                Choice(option="c", text="I can do both")
+            ],
+            correct_option="a"
+        )
+    ]
+)
 
+@app.get("/get_welcome_quiz", response_model=Quiz)
+async def get_welcome_quiz():
+    return welcome_quiz
 
+@app.post("/post_welcome_quiz_answers")
+async def post_welcome_quiz_answers(answers: FinishQuizRequest):
+    a_count = answers.answers.count("a")
+    b_count = answers.answers.count("b")
+    c_count = answers.answers.count("c")
+
+    if a_count > b_count and a_count > c_count:
+        return {"message": "You should pick the path of a backend developer"}
+    elif b_count > a_count and b_count > c_count:
+        return {"message": "You should pick the path of a frontend developer"}
+    else:
+        return {"message": "You should pick the path of a fullstack developer"}
