@@ -1,8 +1,7 @@
 """
-original author: Dominik Cedro
-created: 2024-09-28
-license: none
-description: Security setup
+author: Dominik Cedro
+team: Znamy sie tylko z widzenia!
+date: 12.10.2024
 """
 import os
 from datetime import timedelta, timezone, datetime

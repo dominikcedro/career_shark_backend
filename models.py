@@ -93,6 +93,19 @@ class RefreshRequest(BaseModel):
 
 class TokenRequest(BaseModel):
     access_token: str
+### quizzes
+
+
+class Choice(BaseModel):
+    option: str
+    text: str
+class Question(BaseModel):
+    question_text: str
+    choices: List[Choice]
+    correct_option: str # a / b / c lowercase
+class Quiz(BaseModel):
+    name_of_test: str
+    questions: List[Question]
 
 ### LESSONS
 
@@ -102,8 +115,8 @@ class Lesson(BaseModel):
     name: str
     level: int
     link_to_resources: str
-    test: str  # Accepting a string for now
     value_points: int
+    quiz: Optional[Quiz] = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -116,7 +129,7 @@ class LessonCreate(BaseModel):
     name: str
     level: int
     link_to_resources: str
-    test: str  # Accepting a string for now
+    quiz: Optional[Quiz] = None
     value_points: int
 
 
@@ -125,7 +138,7 @@ class LessonResponse(BaseModel):
     name: str
     level: int
     link_to_resources: str
-    test: str  # Accepting a string for now
+    quiz: Optional[Quiz] = None
     value_points: int
     finished: int = 0 # zero for not finished, 1 for finished for current user
 
@@ -134,3 +147,5 @@ class LessonResponse(BaseModel):
         json_encoders = {
             ObjectId: str
         }
+
+

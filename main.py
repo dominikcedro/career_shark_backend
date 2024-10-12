@@ -23,7 +23,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 # module imports
 from models import User, UserCreate, UserInDB, Token, TokenData, LoginRequest, RegisterRequest, UserResponse, \
-    RefreshRequest, TokenRequest, LessonResponse, LessonCreate
+    RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz
 from security import get_password_hash, verify_password, oauth2_scheme, SECRET_KEY, ALGORITHM, \
     ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, REFRESH_TOKEN_EXPIRE_MINUTES, create_refresh_token
 
@@ -451,3 +451,44 @@ async def finish_course(course_id: str, token: str):
         return {"message": "Course added to finished courses"}
     else:
         return {"message": "Course already in finished courses"}
+
+# now lets think about how to retrieve and upload quizz
+@app.get("/lessons/{lesson_id}/quiz", response_model=Quiz)
+async def get_quiz(lesson_id: str):
+    """
+    Retrieve the quiz for a specific lesson.
+
+    Args:
+        lesson_id (str): The ID of the lesson.
+
+    Returns:
+        Quiz: The quiz data for the lesson.
+    """
+    lesson = collection_lessons.find_one({"_id": ObjectId(lesson_id)})
+    if not lesson or not lesson.get("quiz"):
+        raise HTTPException(status_code=404, detail="Lesson or quiz not found")
+
+    return Quiz(**lesson["quiz"])
+
+@app.post("/lessons/{lesson_id}/quiz", response_model=LessonResponse)
+async def upload_quiz(lesson_id: str, quiz: Quiz):
+    """
+    Upload a quiz for a specific lesson.
+
+    Args:
+        lesson_id (str): The ID of the lesson.
+        quiz (Quiz): The quiz data to be uploaded.
+
+    Returns:
+        LessonResponse: The updated lesson data with the quiz.
+    """
+    result = collection_lessons.update_one(
+        {"_id": ObjectId(lesson_id)},
+        {"$set": {"quiz": quiz.dict()}}
+    )
+    if result.modified_count == 1:
+        lesson = collection_lessons.find_one({"_id": ObjectId(lesson_id)})
+        lesson["_id"] = str(lesson["_id"])
+        return LessonResponse(**lesson)
+    else:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Quiz upload failed")
