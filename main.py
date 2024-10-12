@@ -23,7 +23,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 # module imports
 from models import User, UserCreate, UserInDB, Token, TokenData, LoginRequest, RegisterRequest, UserResponse, \
-    RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz, QuizUploadRequest
+    RefreshRequest, TokenRequest, LessonResponse, LessonCreate, Quiz, QuizUploadRequest, FinishQuizRequest
 from security import get_password_hash, verify_password, oauth2_scheme, SECRET_KEY, ALGORITHM, \
     ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, REFRESH_TOKEN_EXPIRE_MINUTES, create_refresh_token
 
@@ -492,3 +492,54 @@ async def upload_quiz(lesson_id: str, quiz: QuizUploadRequest):
         return LessonResponse(**lesson)
     else:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Quiz upload failed")
+
+@app.post("/lessons/{lesson_id}/finish_course_submit_quiz")
+async def finish_course_submit_quiz(lesson_id: str, request: FinishQuizRequest, token: str):
+    """
+    Finish the course by submitting the quiz.
+
+    Args:
+        lesson_id (str): The ID of the lesson.
+        request (FinishQuizRequest): The submitted answers.
+        token (str): The JWT token of the user.
+
+    Returns:
+        dict: A message indicating the result of the quiz submission.
+    """
+    user_id = extract_user_id_from_token(token)
+    user = get_user_by_id(collection_users, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    lesson = collection_lessons.find_one({"_id": ObjectId(lesson_id)})
+    if not lesson or not lesson.get("quiz"):
+        raise HTTPException(status_code=404, detail="Lesson or quiz not found")
+
+    quiz = Quiz(**lesson["quiz"])
+    correct_answers = [q.correct_option for q in quiz.questions]
+    correct_count = sum(1 for submitted, correct in zip(request.answers, correct_answers) if submitted == correct)
+    ic(correct_count)
+    ic(correct_answers)
+    ic(quiz.to_pass)
+    correct_count = correct_count/quiz.num_of_questions * 100
+    ic(correct_count)
+
+    ic(FinishQuizRequest)
+    if correct_count >= quiz.to_pass:
+        ic("more correct answers")
+        if lesson_id not in user.finished_courses:
+            user.finished_courses.append(lesson_id)
+            user.points += lesson["value_points"]
+            collection_users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {"finished_courses": user.finished_courses, "points": user.points}}
+            )
+            return {"message": "Course passed and quiz submitted successfully"}
+        else:
+            return {"message": "Course already finished"}
+    else:
+        collection_users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"lives": user.lives - 1}}
+        )
+        raise HTTPException(status_code=400, detail="Quiz not passed")
