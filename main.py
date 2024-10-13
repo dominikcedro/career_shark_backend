@@ -317,7 +317,7 @@ def extract_user_id_from_token(token: str) -> str:
 
 from fastapi import Header, Depends
 
-@app.post("/get_me", response_model=UserResponse)
+@app.get("/get_me", response_model=UserResponse)
 async def extract_user_info(token: str = Depends(oauth2_scheme)):
     """
         Get current user information based on jwt token
