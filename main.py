@@ -477,7 +477,11 @@ async def get_quiz(lesson_id: str):
     if not lesson or not lesson.get("quiz"):
         raise HTTPException(status_code=404, detail="Lesson or quiz not found")
 
-    return Quiz(**lesson["quiz"])
+    quiz_data = lesson["quiz"]
+    if "to_pass" not in quiz_data or "num_of_questions" not in quiz_data:
+        raise HTTPException(status_code=400, detail="Quiz data is incomplete")
+
+    return Quiz(**quiz_data)
 
 @app.post("/lessons/{lesson_id}/quiz", response_model=LessonResponse)
 async def upload_quiz(lesson_id: str, quiz: QuizUploadRequest):

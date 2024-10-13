@@ -3,7 +3,7 @@ author: Dominik Cedro
 team: Znamy sie tylko z widzenia!
 date: 12.10.2024
 """
-from typing import Optional, List
+from typing import Optional, List, Union
 from pydantic import BaseModel, EmailStr, Field, root_validator
 from bson import ObjectId
 from pydantic import BaseModel, EmailStr
@@ -132,6 +132,8 @@ class Lesson(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     name: str
     level: int
+    img_url: str
+    description: str
     link_to_resources: str
     value_points: int
     quiz: Optional[Quiz] = None
@@ -146,8 +148,10 @@ class Lesson(BaseModel):
 class LessonCreate(BaseModel):
     name: str
     level: int
+    img_url: str
+    description: str
     link_to_resources: str
-    quiz: Optional[Quiz] = None
+    quiz: Optional[List[Quiz]] = Field(default_factory=list)
     value_points: int
 
 
@@ -155,8 +159,10 @@ class LessonResponse(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     name: str
     level: int
+    img_url: str
+    description: str
     link_to_resources: str
-    quiz: Optional[Quiz] = None
+    quiz: Optional[Union[Quiz, List[Quiz]]] = None
     value_points: int
     finished: int = 0 # zero for not finished, 1 for finished for current user
 
@@ -173,6 +179,8 @@ class LessonResponseWithoutQuiz(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     name: str
     level: int
+    img_url: str
+    description: str
     link_to_resources: str
     value_points: int
     finished: int = 0  # zero for not finished, 1 for finished for current user
