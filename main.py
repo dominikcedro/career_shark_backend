@@ -420,6 +420,23 @@ async def get_lessons_by_level(level: int, token: str = Depends(oauth2_scheme)):
 
     return [LessonResponseWithoutQuiz(**lesson) for lesson in lessons]
 
+
+@app.get("/course/{course_id}", response_model=LessonResponseWithoutQuiz)
+async def get_course_by_id(course_id: str, token: str = Depends(oauth2_scheme)):
+    user_id = extract_user_id_from_token(token)
+    user = get_user_by_id(collection_users, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    course = collection_lessons.find_one({"_id": ObjectId(course_id)})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    course["_id"] = str(course["_id"])
+    course["finished"] = 1 if course["_id"] in user.finished_courses else 0
+
+    return LessonResponseWithoutQuiz(**course)
+
 @app.post("/users/finish_course")
 async def finish_course(course_id: str, token: str):
     """
